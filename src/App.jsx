@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { TaskSection } from './features/tasks/TaskSection'
 import { InventorySection } from './features/inventory/InventorySection'
 import { RoommateSection } from './features/roommates/RoommateSection'
+import { SearchResults } from './features/search/SearchResults'
 import { useLocalCollection } from './hooks/useLocalCollection'
 
 const tabs = [
@@ -13,7 +14,34 @@ const tabs = [
 function App() {
   const [activeTab, setActiveTab] = useState('tasks')
   const [searchTerm, setSearchTerm] = useState('')
-  const { items: roommates, addItem, deleteItem } = useLocalCollection('roommates')
+  const normalizedSearch = searchTerm.trim().toLowerCase()
+
+  const {
+    items: roommates,
+    addItem: addRoommateItem,
+    deleteItem: deleteRoommate,
+  } = useLocalCollection('roommates')
+  const {
+    items: tasks,
+    addItem: addTask,
+    updateItem: updateTask,
+    deleteItem: deleteTask,
+  } = useLocalCollection('tasks')
+  const {
+    items: inventoryItems,
+    addItem: addInventoryItem,
+    updateItem: updateInventoryItem,
+    deleteItem: deleteInventoryItem,
+  } = useLocalCollection('inventory')
+
+  const roommateNameById = useMemo(
+    () =>
+      roommates.reduce((acc, roommate) => {
+        acc[roommate.id] = roommate.name
+        return acc
+      }, {}),
+    [roommates],
+  )
 
   function addRoommate(name) {
     const cleanedName = name.trim()
@@ -29,9 +57,40 @@ function App() {
       name: cleanedName,
       createdAt: Date.now(),
     }
-    addItem(roommate)
+    addRoommateItem(roommate)
     return roommate
   }
+
+  const filteredTasks = useMemo(() => {
+    if (!normalizedSearch) return tasks
+    return tasks.filter((task) => {
+      const assigneeName =
+        roommateNameById[task.assigneeId] ?? task.assignee ?? 'Unassigned'
+      return (
+        task.title.toLowerCase().includes(normalizedSearch) ||
+        assigneeName.toLowerCase().includes(normalizedSearch)
+      )
+    })
+  }, [tasks, normalizedSearch, roommateNameById])
+
+  const filteredInventoryItems = useMemo(() => {
+    if (!normalizedSearch) return inventoryItems
+    return inventoryItems.filter((item) => {
+      const requestedByName = roommateNameById[item.requestedById] ?? ''
+      return (
+        item.name.toLowerCase().includes(normalizedSearch) ||
+        item.notes.toLowerCase().includes(normalizedSearch) ||
+        requestedByName.toLowerCase().includes(normalizedSearch)
+      )
+    })
+  }, [inventoryItems, normalizedSearch, roommateNameById])
+
+  const filteredRoommates = useMemo(() => {
+    if (!normalizedSearch) return roommates
+    return roommates.filter((roommate) =>
+      roommate.name.toLowerCase().includes(normalizedSearch),
+    )
+  }, [roommates, normalizedSearch])
 
   return (
     <div className="min-h-screen bg-slate-200/70 px-2 py-4 text-slate-900 sm:px-4 sm:py-6">
@@ -81,26 +140,41 @@ function App() {
         </header>
 
         <main className="flex-1 space-y-4 px-4 py-4 sm:px-5">
+          {normalizedSearch && (
+            <SearchResults
+              searchTerm={searchTerm}
+              taskMatches={filteredTasks}
+              inventoryMatches={filteredInventoryItems}
+              roommateMatches={filteredRoommates}
+              roommateNameById={roommateNameById}
+              onOpenTab={setActiveTab}
+            />
+          )}
           {activeTab === 'tasks' && (
             <TaskSection
+              tasks={normalizedSearch ? filteredTasks : tasks}
               roommates={roommates}
               onAddRoommate={addRoommate}
-              searchTerm={searchTerm}
+              onAddTask={addTask}
+              onUpdateTask={updateTask}
+              onDeleteTask={deleteTask}
             />
           )}
           {activeTab === 'inventory' && (
             <InventorySection
+              inventoryItems={normalizedSearch ? filteredInventoryItems : inventoryItems}
               roommates={roommates}
               onAddRoommate={addRoommate}
-              searchTerm={searchTerm}
+              onAddInventoryItem={addInventoryItem}
+              onUpdateInventoryItem={updateInventoryItem}
+              onDeleteInventoryItem={deleteInventoryItem}
             />
           )}
           {activeTab === 'roommates' && (
             <RoommateSection
-              roommates={roommates}
+              roommates={normalizedSearch ? filteredRoommates : roommates}
               onAddRoommate={addRoommate}
-              onDeleteRoommate={deleteItem}
-              searchTerm={searchTerm}
+              onDeleteRoommate={deleteRoommate}
             />
           )}
         </main>

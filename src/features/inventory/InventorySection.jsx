@@ -1,9 +1,14 @@
 import { useMemo, useState } from 'react'
-import { useLocalCollection } from '../../hooks/useLocalCollection'
 import { RoommatePicker } from '../roommates/RoommatePicker'
 
-export function InventorySection({ roommates, onAddRoommate, searchTerm }) {
-  const { items, addItem, updateItem, deleteItem } = useLocalCollection('inventory')
+export function InventorySection({
+  inventoryItems,
+  roommates,
+  onAddRoommate,
+  onAddInventoryItem,
+  onUpdateInventoryItem,
+  onDeleteInventoryItem,
+}) {
   const [form, setForm] = useState({ name: '', quantity: 0, notes: '', requestedById: '' })
   const [editingId, setEditingId] = useState(null)
   const roommateNameById = useMemo(
@@ -15,28 +20,14 @@ export function InventorySection({ roommates, onAddRoommate, searchTerm }) {
     [roommates],
   )
 
-  const normalizedSearch = searchTerm.trim().toLowerCase()
-  const filteredItems = useMemo(() => {
-    if (!normalizedSearch) return items
-    return items.filter((item) => {
-      const requestedByName = roommateNameById[item.requestedById] ?? ''
-      return (
-        item.name.toLowerCase().includes(normalizedSearch) ||
-        item.notes.toLowerCase().includes(normalizedSearch) ||
-        requestedByName.toLowerCase().includes(normalizedSearch)
-      )
-    })
-  }, [items, normalizedSearch, roommateNameById])
   const neededItems = useMemo(
-    () => filteredItems.filter((item) => item.needed),
-    [filteredItems],
+    () => inventoryItems.filter((item) => item.needed),
+    [inventoryItems],
   )
   const stockedItems = useMemo(
-    () => filteredItems.filter((item) => !item.needed),
-    [filteredItems],
+    () => inventoryItems.filter((item) => !item.needed),
+    [inventoryItems],
   )
-  const totalItemCount = items.length
-  const filteredItemCount = filteredItems.length
 
   function resetForm() {
     setForm({ name: '', quantity: 0, notes: '', requestedById: '' })
@@ -57,12 +48,12 @@ export function InventorySection({ roommates, onAddRoommate, searchTerm }) {
     }
 
     if (editingId) {
-      updateItem(editingId, (item) => ({ ...item, ...payload }))
+      onUpdateInventoryItem(editingId, (item) => ({ ...item, ...payload }))
       resetForm()
       return
     }
 
-    addItem({
+    onAddInventoryItem({
       id: crypto.randomUUID(),
       ...payload,
       createdAt: Date.now(),
@@ -81,16 +72,11 @@ export function InventorySection({ roommates, onAddRoommate, searchTerm }) {
   }
 
   function toggleNeeded(item) {
-    updateItem(item.id, { ...item, needed: !item.needed })
+    onUpdateInventoryItem(item.id, { ...item, needed: !item.needed })
   }
 
   return (
     <section className="space-y-4">
-      {normalizedSearch && (
-        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
-          Showing {filteredItemCount} of {totalItemCount} items for "{searchTerm.trim()}".
-        </div>
-      )}
       <div className="flex gap-2 overflow-x-auto pb-1">
         <div className="whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
           Need to buy: {neededItems.length}
@@ -159,28 +145,20 @@ export function InventorySection({ roommates, onAddRoommate, searchTerm }) {
         title={`Need to buy (${neededItems.length})`}
         items={neededItems}
         roommateNameById={roommateNameById}
-        emptyLabel={
-          normalizedSearch
-            ? `No needed items match "${searchTerm.trim()}".`
-            : 'Shopping list is clear.'
-        }
+        emptyLabel="Shopping list is clear."
         onToggleNeeded={toggleNeeded}
         onEdit={startEditing}
-        onDelete={deleteItem}
+        onDelete={onDeleteInventoryItem}
       />
 
       <InventoryList
         title={`In stock (${stockedItems.length})`}
         items={stockedItems}
         roommateNameById={roommateNameById}
-        emptyLabel={
-          normalizedSearch
-            ? `No in-stock items match "${searchTerm.trim()}".`
-            : 'No stocked items yet.'
-        }
+        emptyLabel="No stocked items yet."
         onToggleNeeded={toggleNeeded}
         onEdit={startEditing}
-        onDelete={deleteItem}
+        onDelete={onDeleteInventoryItem}
       />
     </section>
   )
