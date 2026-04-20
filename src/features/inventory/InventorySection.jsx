@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLocalCollection } from '../../hooks/useLocalCollection'
 import { RoommatePicker } from '../roommates/RoommatePicker'
 
-export function InventorySection({ roommates, onAddRoommate }) {
+export function InventorySection({ roommates, onAddRoommate, searchTerm }) {
   const { items, addItem, updateItem, deleteItem } = useLocalCollection('inventory')
   const [form, setForm] = useState({ name: '', quantity: 0, notes: '', requestedById: '' })
   const [editingId, setEditingId] = useState(null)
@@ -15,8 +15,26 @@ export function InventorySection({ roommates, onAddRoommate }) {
     [roommates],
   )
 
-  const neededItems = useMemo(() => items.filter((item) => item.needed), [items])
-  const stockedItems = useMemo(() => items.filter((item) => !item.needed), [items])
+  const normalizedSearch = searchTerm.trim().toLowerCase()
+  const filteredItems = useMemo(() => {
+    if (!normalizedSearch) return items
+    return items.filter((item) => {
+      const requestedByName = roommateNameById[item.requestedById] ?? ''
+      return (
+        item.name.toLowerCase().includes(normalizedSearch) ||
+        item.notes.toLowerCase().includes(normalizedSearch) ||
+        requestedByName.toLowerCase().includes(normalizedSearch)
+      )
+    })
+  }, [items, normalizedSearch, roommateNameById])
+  const neededItems = useMemo(
+    () => filteredItems.filter((item) => item.needed),
+    [filteredItems],
+  )
+  const stockedItems = useMemo(
+    () => filteredItems.filter((item) => !item.needed),
+    [filteredItems],
+  )
 
   function resetForm() {
     setForm({ name: '', quantity: 0, notes: '', requestedById: '' })

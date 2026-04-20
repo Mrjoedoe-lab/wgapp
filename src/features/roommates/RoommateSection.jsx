@@ -1,7 +1,16 @@
 import { useState } from 'react'
 
-export function RoommateSection({ roommates, onAddRoommate, onDeleteRoommate }) {
+export function RoommateSection({
+  roommates,
+  onAddRoommate,
+  onDeleteRoommate,
+  searchTerm,
+}) {
   const [name, setName] = useState('')
+  const normalizedSearch = searchTerm.trim().toLowerCase()
+  const filteredRoommates = roommates.filter((roommate) =>
+    roommate.name.toLowerCase().includes(normalizedSearch),
+  )
 
   function handleSubmit(event) {
     event.preventDefault()
@@ -33,13 +42,13 @@ export function RoommateSection({ roommates, onAddRoommate, onDeleteRoommate }) 
 
       <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Saved roommates ({roommates.length})
+          Saved roommates ({filteredRoommates.length})
         </h3>
         <div className="mt-3 space-y-3">
-          {roommates.length === 0 && (
+          {filteredRoommates.length === 0 && (
             <p className="text-sm text-slate-500">No roommates added yet.</p>
           )}
-          {roommates.map((roommate) => (
+          {filteredRoommates.map((roommate) => (
             <article
               key={roommate.id}
               className="flex items-center justify-between rounded-2xl bg-slate-50 p-3"

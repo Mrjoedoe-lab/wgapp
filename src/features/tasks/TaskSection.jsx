@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLocalCollection } from '../../hooks/useLocalCollection'
 import { RoommatePicker } from '../roommates/RoommatePicker'
 
-export function TaskSection({ roommates, onAddRoommate }) {
+export function TaskSection({ roommates, onAddRoommate, searchTerm }) {
   const { items: tasks, addItem, updateItem, deleteItem } = useLocalCollection('tasks')
   const [form, setForm] = useState({ title: '', assigneeId: '', recurring: false })
   const [editingId, setEditingId] = useState(null)
@@ -15,8 +15,26 @@ export function TaskSection({ roommates, onAddRoommate }) {
     [roommates],
   )
 
-  const openTasks = useMemo(() => tasks.filter((task) => !task.completed), [tasks])
-  const doneTasks = useMemo(() => tasks.filter((task) => task.completed), [tasks])
+  const normalizedSearch = searchTerm.trim().toLowerCase()
+  const filteredTasks = useMemo(() => {
+    if (!normalizedSearch) return tasks
+    return tasks.filter((task) => {
+      const assigneeName =
+        roommateNameById[task.assigneeId] ?? task.assignee ?? 'Unassigned'
+      return (
+        task.title.toLowerCase().includes(normalizedSearch) ||
+        assigneeName.toLowerCase().includes(normalizedSearch)
+      )
+    })
+  }, [tasks, normalizedSearch, roommateNameById])
+  const openTasks = useMemo(
+    () => filteredTasks.filter((task) => !task.completed),
+    [filteredTasks],
+  )
+  const doneTasks = useMemo(
+    () => filteredTasks.filter((task) => task.completed),
+    [filteredTasks],
+  )
 
   function resetForm() {
     setForm({ title: '', assigneeId: '', recurring: false })
