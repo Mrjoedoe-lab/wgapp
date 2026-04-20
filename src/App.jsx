@@ -37,7 +37,7 @@ function App() {
     <div className="min-h-screen bg-slate-200/70 px-2 py-4 text-slate-900 sm:px-4 sm:py-6">
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col overflow-hidden rounded-[2rem] border border-white/60 bg-[#f4f5f7] shadow-[0_24px_80px_rgba(76,70,255,0.15)]">
         <header className="rounded-b-[1.75rem] bg-gradient-to-br from-indigo-700 via-indigo-600 to-violet-600 px-4 pb-5 pt-4 text-white sm:px-5">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-center">
             <div className="flex items-center gap-3">
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/25 text-lg shadow-inner">
                 👥
@@ -47,7 +47,6 @@ function App() {
                 <p className="text-sm text-indigo-100">Shared chores and inventory</p>
               </div>
             </div>
-            <div className="h-10 w-10" aria-hidden="true" />
           </div>
 
           <div className="mt-4 rounded-2xl bg-white px-3 py-2 text-slate-500 shadow-sm">
