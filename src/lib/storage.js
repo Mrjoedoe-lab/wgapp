@@ -1,6 +1,7 @@
 const STORAGE_KEYS = {
   tasks: 'roommate-app.tasks.v1',
   inventory: 'roommate-app.inventory.v1',
+  roommates: 'roommate-app.roommates.v1',
 }
 
 const seedData = {
@@ -37,6 +38,18 @@ const seedData = {
       quantity: 1,
       needed: false,
       notes: '',
+      createdAt: Date.now(),
+    },
+  ],
+  roommates: [
+    {
+      id: crypto.randomUUID(),
+      name: 'Alex',
+      createdAt: Date.now(),
+    },
+    {
+      id: crypto.randomUUID(),
+      name: 'Sam',
       createdAt: Date.now(),
     },
   ],

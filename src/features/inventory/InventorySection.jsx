@@ -1,16 +1,25 @@
 import { useMemo, useState } from 'react'
 import { useLocalCollection } from '../../hooks/useLocalCollection'
+import { RoommatePicker } from '../roommates/RoommatePicker'
 
-export function InventorySection() {
+export function InventorySection({ roommates, onAddRoommate }) {
   const { items, addItem, updateItem, deleteItem } = useLocalCollection('inventory')
-  const [form, setForm] = useState({ name: '', quantity: 0, notes: '' })
+  const [form, setForm] = useState({ name: '', quantity: 0, notes: '', requestedById: '' })
   const [editingId, setEditingId] = useState(null)
+  const roommateNameById = useMemo(
+    () =>
+      roommates.reduce((acc, roommate) => {
+        acc[roommate.id] = roommate.name
+        return acc
+      }, {}),
+    [roommates],
+  )
 
   const neededItems = useMemo(() => items.filter((item) => item.needed), [items])
   const stockedItems = useMemo(() => items.filter((item) => !item.needed), [items])
 
   function resetForm() {
-    setForm({ name: '', quantity: 0, notes: '' })
+    setForm({ name: '', quantity: 0, notes: '', requestedById: '' })
     setEditingId(null)
   }
 
@@ -23,6 +32,7 @@ export function InventorySection() {
       name: form.name.trim(),
       quantity,
       notes: form.notes.trim(),
+      requestedById: form.requestedById,
       needed: quantity <= 0,
     }
 
@@ -46,6 +56,7 @@ export function InventorySection() {
       name: item.name,
       quantity: item.quantity,
       notes: item.notes,
+      requestedById: item.requestedById ?? '',
     })
   }
 
@@ -55,13 +66,22 @@ export function InventorySection() {
 
   return (
     <section className="space-y-4">
-      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
+          Need to buy: {neededItems.length}
+        </div>
+        <div className="whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
+          In stock: {stockedItems.length}
+        </div>
+      </div>
+
+      <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-semibold text-slate-900">
           {editingId ? 'Edit item' : 'Add inventory item'}
         </h2>
         <form className="mt-3 space-y-3" onSubmit={handleSubmit}>
           <input
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
             placeholder="Item name"
             value={form.name}
             onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
@@ -69,7 +89,7 @@ export function InventorySection() {
           <input
             type="number"
             min="0"
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
             placeholder="Quantity"
             value={form.quantity}
             onChange={(event) =>
@@ -77,15 +97,23 @@ export function InventorySection() {
             }
           />
           <input
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
             placeholder="Optional notes"
             value={form.notes}
             onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
           />
+          <RoommatePicker
+            label="Requested by"
+            value={form.requestedById}
+            onChange={(requestedById) => setForm((prev) => ({ ...prev, requestedById }))}
+            roommates={roommates}
+            onAddRoommate={onAddRoommate}
+            placeholder="Optional"
+          />
           <div className="flex gap-2">
             <button
               type="submit"
-              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+              className="rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500"
             >
               {editingId ? 'Save item' : 'Add item'}
             </button>
@@ -93,7 +121,7 @@ export function InventorySection() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+                className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
               >
                 Cancel
               </button>
@@ -105,6 +133,7 @@ export function InventorySection() {
       <InventoryList
         title={`Need to buy (${neededItems.length})`}
         items={neededItems}
+        roommateNameById={roommateNameById}
         emptyLabel="Shopping list is clear."
         onToggleNeeded={toggleNeeded}
         onEdit={startEditing}
@@ -114,6 +143,7 @@ export function InventorySection() {
       <InventoryList
         title={`In stock (${stockedItems.length})`}
         items={stockedItems}
+        roommateNameById={roommateNameById}
         emptyLabel="No stocked items yet."
         onToggleNeeded={toggleNeeded}
         onEdit={startEditing}
@@ -123,16 +153,24 @@ export function InventorySection() {
   )
 }
 
-function InventoryList({ title, items, emptyLabel, onToggleNeeded, onEdit, onDelete }) {
+function InventoryList({
+  title,
+  items,
+  roommateNameById,
+  emptyLabel,
+  onToggleNeeded,
+  onEdit,
+  onDelete,
+}) {
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
+    <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
       <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</h3>
-      <div className="mt-3 space-y-2">
+      <div className="mt-3 space-y-3">
         {items.length === 0 && <p className="text-sm text-slate-500">{emptyLabel}</p>}
         {items.map((item) => (
           <article
             key={item.id}
-            className="rounded-xl border border-slate-200 p-3 transition hover:border-slate-300"
+            className="rounded-2xl bg-slate-50 p-3 transition hover:bg-slate-100"
           >
             <div className="flex items-start gap-2">
               <input
@@ -146,6 +184,9 @@ function InventoryList({ title, items, emptyLabel, onToggleNeeded, onEdit, onDel
                 <p className="text-xs text-slate-500">
                   Qty: {item.quantity}
                   {item.notes ? ` • ${item.notes}` : ''}
+                  {item.requestedById
+                    ? ` • Requested by ${roommateNameById[item.requestedById] ?? 'Unknown'}`
+                    : ''}
                 </p>
               </div>
               <div className="flex gap-2">

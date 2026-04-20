@@ -1,26 +1,35 @@
 import { useMemo, useState } from 'react'
 import { useLocalCollection } from '../../hooks/useLocalCollection'
+import { RoommatePicker } from '../roommates/RoommatePicker'
 
-export function TaskSection() {
+export function TaskSection({ roommates, onAddRoommate }) {
   const { items: tasks, addItem, updateItem, deleteItem } = useLocalCollection('tasks')
-  const [form, setForm] = useState({ title: '', assignee: '', recurring: false })
+  const [form, setForm] = useState({ title: '', assigneeId: '', recurring: false })
   const [editingId, setEditingId] = useState(null)
+  const roommateNameById = useMemo(
+    () =>
+      roommates.reduce((acc, roommate) => {
+        acc[roommate.id] = roommate.name
+        return acc
+      }, {}),
+    [roommates],
+  )
 
   const openTasks = useMemo(() => tasks.filter((task) => !task.completed), [tasks])
   const doneTasks = useMemo(() => tasks.filter((task) => task.completed), [tasks])
 
   function resetForm() {
-    setForm({ title: '', assignee: '', recurring: false })
+    setForm({ title: '', assigneeId: '', recurring: false })
     setEditingId(null)
   }
 
   function handleSubmit(event) {
     event.preventDefault()
-    if (!form.title.trim() || !form.assignee.trim()) return
+    if (!form.title.trim() || !form.assigneeId) return
 
     const payload = {
       title: form.title.trim(),
-      assignee: form.assignee.trim(),
+      assigneeId: form.assigneeId,
       recurring: form.recurring,
     }
 
@@ -40,36 +49,51 @@ export function TaskSection() {
   }
 
   function startEditing(task) {
+    const fallbackRoommate = roommates.find(
+      (roommate) => roommate.name.toLowerCase() === (task.assignee ?? '').toLowerCase(),
+    )
+
     setEditingId(task.id)
     setForm({
       title: task.title,
-      assignee: task.assignee,
+      assigneeId: task.assigneeId ?? fallbackRoommate?.id ?? '',
       recurring: task.recurring,
     })
   }
 
   return (
     <section className="space-y-4">
-      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
+          Open: {openTasks.length}
+        </div>
+        <div className="whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
+          Done: {doneTasks.length}
+        </div>
+        <div className="whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
+          Roommates: {roommates.length}
+        </div>
+      </div>
+
+      <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-semibold text-slate-900">
           {editingId ? 'Edit task' : 'Add a chore'}
         </h2>
         <form className="mt-3 space-y-3" onSubmit={handleSubmit}>
           <input
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
             placeholder="Task title"
             value={form.title}
             onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
           />
-          <input
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-            placeholder="Responsible roommate"
-            value={form.assignee}
-            onChange={(event) =>
-              setForm((prev) => ({ ...prev, assignee: event.target.value }))
-            }
+          <RoommatePicker
+            label="Responsible roommate"
+            value={form.assigneeId}
+            onChange={(assigneeId) => setForm((prev) => ({ ...prev, assigneeId }))}
+            roommates={roommates}
+            onAddRoommate={onAddRoommate}
           />
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
             <input
               type="checkbox"
               checked={form.recurring}
@@ -82,7 +106,7 @@ export function TaskSection() {
           <div className="flex gap-2">
             <button
               type="submit"
-              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+              className="rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500"
             >
               {editingId ? 'Save task' : 'Add task'}
             </button>
@@ -90,7 +114,7 @@ export function TaskSection() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+                className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
               >
                 Cancel
               </button>
@@ -102,6 +126,7 @@ export function TaskSection() {
       <TaskList
         title={`Open tasks (${openTasks.length})`}
         tasks={openTasks}
+        roommateNameById={roommateNameById}
         emptyLabel="No open tasks right now."
         onToggle={(id) => updateItem(id, (task) => ({ ...task, completed: true }))}
         onEdit={startEditing}
@@ -111,6 +136,7 @@ export function TaskSection() {
       <TaskList
         title={`Completed (${doneTasks.length})`}
         tasks={doneTasks}
+        roommateNameById={roommateNameById}
         emptyLabel="Nothing completed yet."
         onToggle={(id) => updateItem(id, (task) => ({ ...task, completed: false }))}
         onEdit={startEditing}
@@ -120,16 +146,24 @@ export function TaskSection() {
   )
 }
 
-function TaskList({ title, tasks, emptyLabel, onToggle, onEdit, onDelete }) {
+function TaskList({
+  title,
+  tasks,
+  roommateNameById,
+  emptyLabel,
+  onToggle,
+  onEdit,
+  onDelete,
+}) {
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
+    <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
       <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</h3>
-      <div className="mt-3 space-y-2">
+      <div className="mt-3 space-y-3">
         {tasks.length === 0 && <p className="text-sm text-slate-500">{emptyLabel}</p>}
         {tasks.map((task) => (
           <article
             key={task.id}
-            className="rounded-xl border border-slate-200 p-3 transition hover:border-slate-300"
+            className="rounded-2xl bg-slate-50 p-3 transition hover:bg-slate-100"
           >
             <div className="flex items-start gap-2">
               <input
@@ -141,10 +175,11 @@ function TaskList({ title, tasks, emptyLabel, onToggle, onEdit, onDelete }) {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-slate-900">{task.title}</p>
                 <p className="text-xs text-slate-500">
-                  {task.assignee} • {task.recurring ? 'Recurring' : 'One-time'}
+                  {roommateNameById[task.assigneeId] ?? task.assignee ?? 'Unassigned'} •{' '}
+                  {task.recurring ? 'Recurring' : 'One-time'}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => onEdit(task)}
