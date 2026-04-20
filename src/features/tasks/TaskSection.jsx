@@ -35,6 +35,8 @@ export function TaskSection({ roommates, onAddRoommate, searchTerm }) {
     () => filteredTasks.filter((task) => task.completed),
     [filteredTasks],
   )
+  const totalTaskCount = tasks.length
+  const filteredTaskCount = filteredTasks.length
 
   function resetForm() {
     setForm({ title: '', assigneeId: '', recurring: false })
@@ -81,6 +83,11 @@ export function TaskSection({ roommates, onAddRoommate, searchTerm }) {
 
   return (
     <section className="space-y-4">
+      {normalizedSearch && (
+        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
+          Showing {filteredTaskCount} of {totalTaskCount} tasks for "{searchTerm.trim()}".
+        </div>
+      )}
       <div className="flex gap-2 overflow-x-auto pb-1">
         <div className="whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
           Open: {openTasks.length}
@@ -145,7 +152,11 @@ export function TaskSection({ roommates, onAddRoommate, searchTerm }) {
         title={`Open tasks (${openTasks.length})`}
         tasks={openTasks}
         roommateNameById={roommateNameById}
-        emptyLabel="No open tasks right now."
+        emptyLabel={
+          normalizedSearch
+            ? `No open tasks match "${searchTerm.trim()}".`
+            : 'No open tasks right now.'
+        }
         onToggle={(id) => updateItem(id, (task) => ({ ...task, completed: true }))}
         onEdit={startEditing}
         onDelete={deleteItem}
@@ -155,7 +166,11 @@ export function TaskSection({ roommates, onAddRoommate, searchTerm }) {
         title={`Completed (${doneTasks.length})`}
         tasks={doneTasks}
         roommateNameById={roommateNameById}
-        emptyLabel="Nothing completed yet."
+        emptyLabel={
+          normalizedSearch
+            ? `No completed tasks match "${searchTerm.trim()}".`
+            : 'Nothing completed yet.'
+        }
         onToggle={(id) => updateItem(id, (task) => ({ ...task, completed: false }))}
         onEdit={startEditing}
         onDelete={deleteItem}

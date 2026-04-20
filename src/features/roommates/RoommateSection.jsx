@@ -11,6 +11,7 @@ export function RoommateSection({
   const filteredRoommates = roommates.filter((roommate) =>
     roommate.name.toLowerCase().includes(normalizedSearch),
   )
+  const totalRoommateCount = roommates.length
 
   function handleSubmit(event) {
     event.preventDefault()
@@ -22,6 +23,12 @@ export function RoommateSection({
 
   return (
     <section className="space-y-4">
+      {normalizedSearch && (
+        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
+          Showing {filteredRoommates.length} of {totalRoommateCount} roommates for "
+          {searchTerm.trim()}".
+        </div>
+      )}
       <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-semibold text-slate-900">Add roommate</h2>
         <form className="mt-3 flex gap-2" onSubmit={handleSubmit}>
@@ -46,7 +53,11 @@ export function RoommateSection({
         </h3>
         <div className="mt-3 space-y-3">
           {filteredRoommates.length === 0 && (
-            <p className="text-sm text-slate-500">No roommates added yet.</p>
+            <p className="text-sm text-slate-500">
+              {normalizedSearch
+                ? `No roommates match "${searchTerm.trim()}".`
+                : 'No roommates added yet.'}
+            </p>
           )}
           {filteredRoommates.map((roommate) => (
             <article

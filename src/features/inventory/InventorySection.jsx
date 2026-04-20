@@ -35,6 +35,8 @@ export function InventorySection({ roommates, onAddRoommate, searchTerm }) {
     () => filteredItems.filter((item) => !item.needed),
     [filteredItems],
   )
+  const totalItemCount = items.length
+  const filteredItemCount = filteredItems.length
 
   function resetForm() {
     setForm({ name: '', quantity: 0, notes: '', requestedById: '' })
@@ -84,6 +86,11 @@ export function InventorySection({ roommates, onAddRoommate, searchTerm }) {
 
   return (
     <section className="space-y-4">
+      {normalizedSearch && (
+        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
+          Showing {filteredItemCount} of {totalItemCount} items for "{searchTerm.trim()}".
+        </div>
+      )}
       <div className="flex gap-2 overflow-x-auto pb-1">
         <div className="whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
           Need to buy: {neededItems.length}
@@ -152,7 +159,11 @@ export function InventorySection({ roommates, onAddRoommate, searchTerm }) {
         title={`Need to buy (${neededItems.length})`}
         items={neededItems}
         roommateNameById={roommateNameById}
-        emptyLabel="Shopping list is clear."
+        emptyLabel={
+          normalizedSearch
+            ? `No needed items match "${searchTerm.trim()}".`
+            : 'Shopping list is clear.'
+        }
         onToggleNeeded={toggleNeeded}
         onEdit={startEditing}
         onDelete={deleteItem}
@@ -162,7 +173,11 @@ export function InventorySection({ roommates, onAddRoommate, searchTerm }) {
         title={`In stock (${stockedItems.length})`}
         items={stockedItems}
         roommateNameById={roommateNameById}
-        emptyLabel="No stocked items yet."
+        emptyLabel={
+          normalizedSearch
+            ? `No in-stock items match "${searchTerm.trim()}".`
+            : 'No stocked items yet.'
+        }
         onToggleNeeded={toggleNeeded}
         onEdit={startEditing}
         onDelete={deleteItem}
